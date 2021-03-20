@@ -1,0 +1,77 @@
+name: Continuous Integration
+on:
+    push:
+        branches-ignore:
+            - 'master'
+            - 'main'
+        tags-ignore:
+            - '*'
+jobs:
+    php-cs-fixer:
+        name: Verify Code Style
+        runs-on: ubuntu-latest
+        steps:
+            -   uses: actions/checkout@v2
+            -   name: PHP-CS-Fixer
+                uses: docker://oskarstark/php-cs-fixer-ga
+                with:
+                    args: --diff --dry-run
+    build-test:
+        name: Run Functional and Unit Tests
+        runs-on: ubuntu-latest
+        env:
+            APP_ENV: test
+            DATABASE_NAME: url_shortener
+            DATABASE_USERNAME: admin
+            DATABASE_PASSWORD: password
+            DATABASE_VERSION: 11.5
+            DATABASE_PORT: 5432
+            DATABASE_HOST: 127.0.0.1
+            DATABASE_DRIVER: pdo_pgsql
+        services:
+            postgres:
+                image: postgres:11.5
+                env:
+                    POSTGRES_DB: ${{ job.env.DATABASE_NAME }}
+                    POSTGRES_USER: admin
+                    POSTGRES_PASSWORD: password
+                options: >-
+                    --health-cmd pg_isready
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+                ports:
+                    - 5432:5432
+        steps:
+            -   name: Checkout Code Source
+                uses: actions/checkout@v2
+            -   name: Install PHP Environment
+                uses: shivammathur/setup-php@v2
+                with:
+                    php-version: '7.4'
+                    extensions: mbstring, xml, ctype, iconv, intl, pgsql, php-zip
+                    coverage: xdebug
+            -   name: Get Composer Cache Directory
+                id: composer-cache
+                run: echo "::set-output name=dir::$(composer config cache-files-dir)"
+            -   name: Cache Composer Downloads
+                uses: actions/cache@v2
+                with:
+                    path: ${{ steps.composer-cache.outputs.dir }}
+                    key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+                    restore-keys: ${{ runner.os }}-composer-
+            -   name: Cache PHP dependencies
+                uses: actions/cache@v1
+                with:
+                    path: vendor
+                    key: ${{ runner.OS }}-build-${{ hashFiles('**/composer.lock') }}
+            -   name: Install Composer dependencies (from cache or download)
+                uses: php-actions/composer@v2
+            -   name: Install Database
+                run: php bin/console doctrine:database:create --if-not-exists --no-interaction --no-debug
+            -   name: Migrate Database
+                run: php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration -vvv --all-or-nothing --env=test
+            -   name: Load Fixtures
+                run: php bin/console doctrine:fixtures:load --append --env=test
+            -   name: Test Symfony application
+                run: ./vendor/bin/phpunit --testsuite=main --configuration phpunit.xml.dist

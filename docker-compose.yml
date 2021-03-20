@@ -1,0 +1,41 @@
+version: '3.4'
+
+services:
+    fpm:
+        build:
+            context: .
+            dockerfile: ./docker/Dockerfile
+            target: fpm-prod
+        depends_on:
+            - db
+        env_file:
+            - .env
+        volumes:
+            - ./:/app:cached
+
+    nginx:
+        build:
+            context: .
+            dockerfile: ./docker/Dockerfile
+            target: nginx-prod
+        depends_on:
+            - fpm
+        volumes:
+            - ./:/app:cached
+        ports:
+            - "80:80"
+
+    db:
+        image: postgres:${DATABASE_VERSION}-alpine
+        ports:
+            - "5432:${DATABASE_PORT}" #LOCAL:INTERNAL
+        environment:
+            - POSTGRES_DB=${DATABASE_NAME}
+            - POSTGRES_USER=${DATABASE_USERNAME}
+            - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+            - PGGSSENCMODE=disable
+        volumes:
+            - "dbdata:/var/lib/postgresql/data"
+
+volumes:
+    dbdata:
