@@ -14,18 +14,30 @@ services:
     # makes classes in src/ available to be used as services
     # this creates a service per class whose id is the fully-qualified class name
     App\:
-        resource: '../src/'
-        exclude:
-            - '../src/DependencyInjection/'
-            - '../src/Entity/'
-            - '../src/Kernel.php'
-            - '../src/Tests/'
+        resource: '../src/*'
+        exclude: '../src/{DependencyInjection,Entity,Migrations,Tests,Kernel.php}'
 
     # controllers are imported separately to make sure services can be injected
     # as action arguments even if you don't extend any base controller class
-    App\Controller\:
-        resource: '../src/Controller/'
+    App\API\:
+        resource: '/*Controller'
         tags: ['controller.service_arguments']
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+
+    App\Shared\Infrastructure\Command\SymfonyMessengerCommandBus:
+        arguments:
+            $commandBus: '@messenger.command.bus'
+
+    App\Shared\Infrastructure\Query\SymfonyMessengerQueryBus:
+        arguments:
+            $queryBus: '@messenger.query.bus'
+
+    App\Shared\Infrastructure\Event\SymfonyEventDispatcher:
+        arguments:
+            $eventBus: '@messenger.event.bus'
+
+    Hidehalo\Nanoid\Client:
+        class: Hidehalo\Nanoid\Client
+        factory: '@App\Shared\Infrastructure\Identity\NanoGeneratorServiceFactory'

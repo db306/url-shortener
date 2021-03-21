@@ -1,5 +1,5 @@
 ### PHP DEPS ###
-FROM php:7.4.4-fpm-alpine AS php
+FROM php:7.4-fpm-alpine AS php
 COPY wait-for-it.sh /usr/bin/wait-for-it
 RUN chmod +x /usr/bin/wait-for-it
 WORKDIR /app/
@@ -14,7 +14,7 @@ RUN apk update \
     && rm -rf /tmp/*
 
 ### COMPOSER INSTALL ###
-FROM composer:2.0.8 AS composer
+FROM composer:2.0.9 AS composer
 COPY composer.json ./
 COPY composer.lock ./
 RUN composer install --prefer-dist --no-scripts --no-dev --no-autoloader && rm -rf /root/.composer

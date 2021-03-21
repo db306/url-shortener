@@ -1,11 +1,8 @@
 name: Continuous Integration
 on:
     push:
-        branches-ignore:
-            - 'master'
-            - 'main'
-        tags-ignore:
-            - '*'
+        branches:
+            - main
 jobs:
     php-cs-fixer:
         name: Verify Code Style
@@ -21,7 +18,7 @@ jobs:
         runs-on: ubuntu-latest
         env:
             APP_ENV: test
-            DATABASE_NAME: url_shortener
+            DATABASE_NAME: url_shortener_test
             DATABASE_USERNAME: admin
             DATABASE_PASSWORD: password
             DATABASE_VERSION: 11.5
